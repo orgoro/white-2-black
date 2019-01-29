@@ -1,0 +1,12 @@
+tensorflow-gpu
+sklearn
+git-lfs
+pylint
+pytest
+travis
+pandas
+keras
+numpy
+matplotlib
+sklearn
+tqdm

@@ -1,0 +1,18 @@
+language: python
+cache: pip
+
+python:
+  - "2.7"
+  - "3.6"
+
+branches:
+  except:
+    - legacy
+
+install:
+  - travis_retry pip install pylint pytest
+  - travis_retry pip install -r requirements.txt
+
+script:
+  - py.test --runslow
+  - pylint toxic_fool/agents/ toxic_fool/models/ toxic_fool/attacks/ toxic_fool/data toxic_fool/logs/ toxic_fool/resources/ toxic_fool/resources_out/ --rcfile=pylint.rc --output-format=parseable

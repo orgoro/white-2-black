@@ -2,24 +2,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-from os import path
-import time
-from time import gmtime, strftime
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import slim
-import tqdm
-import sys
-
 import data
-import models
 from models.toxicity_clasifier_keras import ToxicityClassifierKeras
-import resources_out as res_out
-from agents.agent import Agent, AgentConfig
-from data.hot_flip_data_processor import HotFlipDataProcessor
-from resources import LATEST_DETECTOR_WEIGHTS
-from attacks.hot_flip_attack import HotFlipAttackData  ##needed to load hot flip data
 from agents.flip_detector import FlipDetector, FlipDetectorConfig
 from agents.smart_replace import smart_replace
 

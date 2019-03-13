@@ -18,9 +18,7 @@ from agents.agent import Agent, AgentConfig
 from data.hot_flip_data_processor import HotFlipDataProcessor
 from resources import LATEST_DETECTOR_WEIGHTS
 from resources_out import RES_OUT_DIR
-from attacks.hot_flip_attack import HotFlipAttackData  ##needed to load hot flip data
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 
 class FlipDetectorConfig(AgentConfig):
     # pylint: disable=too-many-arguments

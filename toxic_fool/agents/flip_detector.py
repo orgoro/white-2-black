@@ -370,7 +370,7 @@ def example():
     sess = tf.Session()
     config = FlipDetectorConfig(
         restore=False,
-        restore_path=path.join(RES_OUT_DIR, 'detector_flip_beam_10/detector_model.ckpt-84056'))
+        restore_path=path.join(RES_OUT_DIR, 'detector_flip_beam10/detector_model.ckpt-84056'))
     model = FlipDetector(sess, config=config)
     #model._validate(dataset)
     model.train(dataset)

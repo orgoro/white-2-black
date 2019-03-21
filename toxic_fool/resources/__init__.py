@@ -11,6 +11,6 @@ TEST_LBLS_CSV_PATH = path.join(RESOURCES_DIR, 'data', 'test_labels.csv')
 TEST_CSV_PATH = path.join(RESOURCES_DIR, 'data', 'test.csv')
 TRAIN_CSV_PATH = path.join(RESOURCES_DIR, 'data', 'train.csv')
 
-LATEST_KERAS_WEIGHTS = path.join(RESOURCES_DIR, 'data', 'weights.latest.hdf5')
-LATEST_DETECTOR_WEIGHTS = path.join(RESOURCES_DIR, 'data', 'detector_flip_beam_10/detector_model.ckpt-84056')
+LATEST_KERAS_WEIGHTS = path.join(RESOURCES_DIR, 'data', 'weights.keras.latest.hdf5')
+LATEST_DETECTOR_WEIGHTS = path.join(RESOURCES_DIR, 'data', 'detector_flip_beam10/detector_model.ckpt-84056')
 

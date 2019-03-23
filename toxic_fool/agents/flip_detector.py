@@ -7,18 +7,18 @@ import time
 from time import gmtime, strftime
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib import slim
 import tqdm
 import sys
 
 import data
-import models
+from toxicity_classifier import ToxicityClassifier
 import resources_out as res_out
 from agents.agent import Agent, AgentConfig
 from data.hot_flip_data_processor import HotFlipDataProcessor
 from resources import LATEST_DETECTOR_WEIGHTS
 from resources_out import RES_OUT_DIR
 import os
+
 
 class FlipDetectorConfig(AgentConfig):
     # pylint: disable=too-many-arguments
@@ -65,8 +65,10 @@ def __str__(self):
 
 class FlipDetector(Agent):
 
-    def __init__(self, sess, tox_model=None, config=FlipDetectorConfig()):
-        # type: (tf.Session, models.ToxicityClassifier, FlipDetectorConfig) -> None
+    def __init__(self, sess, tox_model=None, config=None):
+        # type: (tf.Session, ToxicityClassifier, FlipDetectorConfig) -> None
+        if config is None:
+            config = FlipDetectorConfig()
         self._config = config
 
         super(FlipDetector, self).__init__(sess, tox_model, config)
@@ -212,7 +214,7 @@ class FlipDetector(Agent):
             lbls = dataset.train_lbl[offset:offset + batch_size]
         else:
             lbls = dataset.val_lbl[offset:offset + batch_size]
-        lbls_onehot = lbls #Lables is already one hot
+        lbls_onehot = lbls  # Lables is already one hot
         return lbls, lbls_onehot
 
     def _get_replace_batch(self, dataset, batch_num=None, validation=False):
@@ -222,10 +224,10 @@ class FlipDetector(Agent):
         dataset = dataset
 
         if not validation:
-            replace_chars_onehot = dataset.train_replace_lbl[offset: offset+batch_size]
+            replace_chars_onehot = dataset.train_replace_lbl[offset: offset + batch_size]
         else:
             replace_chars_onehot = dataset.val_replace_lbl[offset: offset + batch_size]
-        replace_chars = np.where(replace_chars_onehot==1)[1]
+        replace_chars = np.where(replace_chars_onehot == 1)[1]
         return replace_chars, replace_chars_onehot
 
     def _validate(self, dataset):
@@ -248,28 +250,28 @@ class FlipDetector(Agent):
             # metrics:
             val_loss += result['loss']
             correct_pred += np.sum(np.argmax(lbls, axis=1) == np.argmax(result['probs'], axis=1))
-            correct_select_pred += np.sum(np.argmax(replace_char,axis=1) == np.argmax(result['select_probs'], axis=1))
+            correct_select_pred += np.sum(np.argmax(replace_char, axis=1) == np.argmax(result['select_probs'], axis=1))
             top_5_probs = np.argsort(result['probs'], axis=1)
             top_5_select_probs = np.argsort(result['select_probs'], axis=1)
             for row in range(0, batch_size - 1):
                 correct_top_5_pred += np.sum(np.argmax(lbls[row]) in top_5_probs[row, -5:])
                 correct_top_5_select_pred += np.sum(np.argmax(replace_char[row]) in top_5_select_probs[row, -5:])
-        val_loss = val_loss / (batch_size*num_batches)
-        accuracy = correct_pred / (batch_size*num_batches)
-        accuracy_select = correct_select_pred / (batch_size*num_batches)
-        top_5_accuracy = correct_top_5_pred / (batch_size*num_batches)
-        top_5_select_accuracy = correct_top_5_select_pred / (batch_size*num_batches)
+        val_loss = val_loss / (batch_size * num_batches)
+        accuracy = correct_pred / (batch_size * num_batches)
+        accuracy_select = correct_select_pred / (batch_size * num_batches)
+        top_5_accuracy = correct_top_5_pred / (batch_size * num_batches)
+        top_5_select_accuracy = correct_top_5_select_pred / (batch_size * num_batches)
         if self._config.eval_only:
             print(
                 'validation loss: {:5.5} '
                 'accuracy: {:5.5} accuracy_select: {:5.5} '
                 'top5 accuracy: {:5.5}  '
                 'top5 select accuracy: {:5.5}'.format(
-                val_loss,
-                accuracy,
-                accuracy_select,
-                top_5_accuracy,
-                top_5_select_accuracy))
+                    val_loss,
+                    accuracy,
+                    accuracy_select,
+                    top_5_accuracy,
+                    top_5_select_accuracy))
         return val_loss, accuracy, top_5_accuracy, accuracy_select, top_5_select_accuracy
 
     def _get_feed_dict(self, batch_num, dataset, is_validate):
@@ -353,7 +355,7 @@ class FlipDetector(Agent):
         detect_probs = self._detect_probs.eval(session=self._sess, feed_dict=feed_dict)
         return np.argmax(detect_probs, 1), detect_probs
 
-    def selector_attack(self,seq, chosen_char_to_flip):
+    def selector_attack(self, seq, chosen_char_to_flip):
         flip_char = np.zeros_like(seq)
         flip_char[chosen_char_to_flip] = 1
         if len(seq.shape) == 1:
@@ -364,6 +366,7 @@ class FlipDetector(Agent):
         select_probs = self._select_probs.eval(session=self._sess, feed_dict=feed_dict)
         return np.argmax(select_probs, 1)[0], select_probs[0]
 
+
 def example():
     dataset = HotFlipDataProcessor.get_detector_selector_datasets()
     _, char_idx, _ = data.Dataset.init_embedding_from_dump()
@@ -372,7 +375,7 @@ def example():
         restore=False,
         restore_path=path.join(RES_OUT_DIR, 'detector_flip_beam10/detector_model.ckpt-84056'))
     model = FlipDetector(sess, config=config)
-    #model._validate(dataset)
+    # model._validate(dataset)
     model.train(dataset)
 
     seq = dataset.train_seq[0]

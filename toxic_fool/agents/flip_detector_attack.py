@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import data
-from models.toxicity_clasifier_keras import ToxicityClassifierKeras
+from toxicity_classifier import ToxicityClassifier
 from agents.flip_detector import FlipDetector, FlipDetectorConfig
 from agents.smart_replace import smart_replace
 
@@ -34,7 +34,7 @@ def example():
 
 
     index_of_toxic_sent = np.where(dataset.val_lbl[:, 0] == 1)[0]
-    tox_model = ToxicityClassifierKeras(session=sess)
+    tox_model = ToxicityClassifier(session=sess)
     num_of_sentence_to_attack = 100 #TODO
     for j in range(num_of_sentence_to_attack):
         seq = dataset.val_seq[index_of_toxic_sent[j]]

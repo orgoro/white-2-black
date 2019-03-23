@@ -7,8 +7,7 @@ import argparse
 from attacks.hot_flip import HotFlip  ##needed to load hot flip data
 from agents.flip_detector import FlipDetector, FlipDetectorConfig
 from agents.smart_replace import smart_replace, get_possible_replace
-from models import ToxicityClassifierKeras
-from models import ToxClassifierKerasConfig
+from toxicity_classifier import ToxicityClassifier, ToxClassifierConfig
 from agents.agent import AgentConfig
 import random
 import data
@@ -92,8 +91,8 @@ class Attacker(object):
         if tox_model:
             self._tox_model = tox_model
         else:
-            tox_config = ToxClassifierKerasConfig(debug=False)
-            self._tox_model = ToxicityClassifierKeras(self._sess, config=tox_config)
+            tox_config = ToxClassifierConfig(debug=False)
+            self._tox_model = ToxicityClassifier(self._sess, config=tox_config)
             self._hotflip = hotflip if hotflip else HotFlip(model=self._tox_model,
                                                             num_of_char_to_flip=1,
                                                             beam_search_size=1,
@@ -169,7 +168,7 @@ class Attacker(object):
                 char_to_flip_to = smart_replace(char_to_flip)
                 token_of_flip = self.char_index[char_to_flip_to]
             else:
-                token_of_flip,_ = self._flip_detector.selector_attack(curr_seq, flip_idx)
+                token_of_flip, _ = self._flip_detector.selector_attack(curr_seq, flip_idx)
                 # token_of_flip = token_to_flip
                 # while token_of_flip == token_to_flip:
                 #     token_of_flip = np.random.randint(1, SPACE_EMBEDDING)
@@ -225,30 +224,26 @@ class Attacker(object):
         mask[MAX_SEQ - 1] = 0
         return mask
 
-    def attack_hot_flip_until_break(self,   seq, beam_size ,  sequence_idx=0):
+    def attack_hot_flip_until_break(self, seq, beam_size, sequence_idx=0):
 
         time_before = time.time()
 
-
-
         seq = seq.copy()
         curr_seq = seq[sequence_idx]
-        hot_flip = HotFlip(model=self._tox_model , break_on_half=True,beam_search_size=beam_size)
+        hot_flip = HotFlip(model=self._tox_model, break_on_half=True, beam_search_size=beam_size)
         best_flip_status, _ = hot_flip.attack(seq=np.expand_dims(curr_seq, 0))
 
-
         sent_attacks = []
-        #reverse list
-        while best_flip_status.prev_flip_status != None: ##the original sentence has prev_flip_status = None
+        # reverse list
+        while best_flip_status.prev_flip_status != None:  ##the original sentence has prev_flip_status = None
             sent_attacks.append(best_flip_status.fliped_sent)
             best_flip_status = best_flip_status.prev_flip_status
 
         num_of_flips = len(sent_attacks)
 
-
         time_for_attack = time.time() - time_before
 
-        return num_of_flips , [time_for_attack / float(num_of_flips)] * num_of_flips
+        return num_of_flips, [time_for_attack / float(num_of_flips)] * num_of_flips
 
     def attack_until_break(self,
                            model='random',
@@ -298,7 +293,7 @@ class Attacker(object):
 
 def example():
     parser = argparse.ArgumentParser(description='Number of sentences to attack')
-    parser.add_argument('--sentences','-s', type=int, required=False, default=400,
+    parser.add_argument('--sentences', '-s', type=int, required=False, default=400,
                         help='How many sentences to attack')
     args = parser.parse_args()
 
@@ -316,7 +311,6 @@ def example():
     attack_list.append((dataset.val_seq[index_of_toxic_sent], dataset.val_lbl[index_of_toxic_sent], 'val'))
 
     seq, _, _ = attack_list[0]
-
 
     # Initialization
     random_cnt_list_moderate = list()
@@ -339,7 +333,7 @@ def example():
         print("Working on sentence ", j + 1, "/", args.sentences)
         curr_seq = seq[sentences_to_run[j]]
 
-        #If the sentence is non-toxic, continue
+        # If the sentence is non-toxic, continue
         if attacker._tox_model.classify(np.expand_dims(curr_seq, 0))[0][0] < 0.5:
             continue
 
@@ -351,25 +345,30 @@ def example():
         random_cnt_moderate, random_cant_untoxic, random_time_for_attack = attacker.attack_until_break(model='random',
                                                                                                        seq=seq,
                                                                                                        sequence_idx=
-                                                                                                    sentences_to_run[
+                                                                                                       sentences_to_run[
                                                                                                            j])
         random_cnt_list_moderate.append(random_cnt_moderate)
         random_time_for_attack_list.append(random_time_for_attack)
         atten_cnt_moderate, atten_cant_untoxic, atten_time_for_attack = attacker.attack_until_break(model='atten',
                                                                                                     seq=seq,
                                                                                                     sequence_idx=
-                                                                                                 sentences_to_run[j])
+                                                                                                    sentences_to_run[j])
         atten_cnt_list_moderate.append(atten_cnt_moderate)
         atten_time_for_attack_list.append(atten_time_for_attack)
-        hotflip_beam10_cnt_moderate, hotflip_beam10_time_for_attack   = attacker.attack_hot_flip_until_break(seq=seq,
-                                                                        beam_size=10,  sequence_idx=sentences_to_run[j])
+        hotflip_beam10_cnt_moderate, hotflip_beam10_time_for_attack = attacker.attack_hot_flip_until_break(seq=seq,
+                                                                                                           beam_size=10,
+                                                                                                           sequence_idx=
+                                                                                                           sentences_to_run[
+                                                                                                               j])
 
         hotflip_beam10_cnt_list_moderate.append(hotflip_beam10_cnt_moderate)
         hotflip_beam10_time_for_attack_list.append(hotflip_beam10_time_for_attack)
 
-
-        hotflip_beam5_cnt_moderate, hotflip_beam5_time_for_attack   = attacker.attack_hot_flip_until_break(seq=seq,
-                                                                        beam_size=5,  sequence_idx=sentences_to_run[j])
+        hotflip_beam5_cnt_moderate, hotflip_beam5_time_for_attack = attacker.attack_hot_flip_until_break(seq=seq,
+                                                                                                         beam_size=5,
+                                                                                                         sequence_idx=
+                                                                                                         sentences_to_run[
+                                                                                                             j])
         hotflip_beam5_cnt_list_moderate.append(hotflip_beam5_cnt_moderate)
         hotflip_beam5_time_for_attack_list.append(hotflip_beam5_time_for_attack)
 
@@ -380,7 +379,6 @@ def example():
 
         hotflip_cnt_list_moderate.append(hotflip_cnt_moderate)
         hotflip_time_for_attack_list.append(hotflip_time_for_attack)
-
 
         detector_cnt_moderate, _, detector_time_for_attack = attacker.attack_until_break(
             model='detector',
@@ -419,6 +417,7 @@ def example():
     flips_cnt['atten_moderate'] = atten_cnt_list_moderate
     np.save(path.join(RES_OUT_DIR, 'flips_cnt.npy'), flips_cnt)
     np.save(path.join(RES_OUT_DIR, 'attack_dict.npy'), attacker.attack_list)
+
 
 if __name__ == '__main__':
     example()

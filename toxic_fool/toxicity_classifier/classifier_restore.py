@@ -4,14 +4,12 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-import data
-
-from models.toxicity_clasifier_keras import ToxicityClassifierKeras, ToxClassifierKerasConfig
+from toxicity_classifier.classifier import ToxicityClassifier
 
 
 def restore():
     sess = tf.Session()
-    tox_model = ToxicityClassifierKeras(session=sess)
+    tox_model = ToxicityClassifier(session=sess)
     return tox_model
 
 

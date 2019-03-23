@@ -7,7 +7,7 @@ import data
 import glob
 import numpy as np
 import tensorflow as tf
-from models.toxicity_clasifier_keras import ToxicityClassifierKeras
+from toxicity_classifier import ToxicityClassifier
 from attacks.hot_flip import HotFlip
 import time
 import resources as out
@@ -132,7 +132,7 @@ class HotFlipAttack(object):
 def example():
     # get restore model
     sess = tf.Session()
-    tox_model = ToxicityClassifierKeras(session=sess)
+    tox_model = ToxicityClassifier(session=sess)
 
     #create hot flip attack, and attack
     hot_flip_attack = HotFlipAttack(tox_model )

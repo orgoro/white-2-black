@@ -5,12 +5,14 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import data
-from models.toxicity_clasifier_keras import ToxicityClassifierKeras
+from toxicity_classifier import ToxicityClassifier
 from agents.flip_detector import FlipDetector, FlipDetectorConfig
 from agents.smart_replace import smart_replace
 
-def get_callsifier(model,seq):
+
+def get_callsifier(model, seq):
     return model.classify(np.expand_dims(seq, 0))[0][0]
+
 
 def create_token_dict(char_idx):
     # convert the char to token dic into token to char dic
@@ -20,8 +22,8 @@ def create_token_dict(char_idx):
 
     return token_index
 
-def example():
 
+def example():
     # get restore model
 
     dataset = data.Dataset.init_from_dump()
@@ -32,10 +34,9 @@ def example():
     config = FlipDetectorConfig(eval_only=True)
     model = FlipDetector(sess, config=config)
 
-
     index_of_toxic_sent = np.where(dataset.val_lbl[:, 0] == 1)[0]
-    tox_model = ToxicityClassifierKeras(session=sess)
-    num_of_sentence_to_attack = 100 #TODO
+    tox_model = ToxicityClassifier(session=sess)
+    num_of_sentence_to_attack = 100  # TODO
     for j in range(num_of_sentence_to_attack):
         seq = dataset.val_seq[index_of_toxic_sent[j]]
         sent = data.seq_2_sent(seq, char_idx)
@@ -44,18 +45,18 @@ def example():
         flipped_seq = seq.copy()
         curr_class = get_callsifier(tox_model, flipped_seq)
 
-        print('toxic class before: ', curr_class )
+        print('toxic class before: ', curr_class)
 
-        #token_to_flip = char_idx['^']
-        #for i in range(3):
+        # token_to_flip = char_idx['^']
+        # for i in range(3):
         mask_char_allow_to_flip = np.ones([500])
         num_of_flips_done = 0
         while curr_class > 0.5 and num_of_flips_done < 15:
-            _ , probs = model.attack(flipped_seq, target_confidence=0.)
+            _, probs = model.attack(flipped_seq, target_confidence=0.)
             mask_probs = probs * mask_char_allow_to_flip
             flip_idx = np.argmax(mask_probs, 1)[0]
             mask_char_allow_to_flip[flip_idx] = 0
-            #curr_sentence = data.seq_2_sent(flipped_seq, char_idx)
+            # curr_sentence = data.seq_2_sent(flipped_seq, char_idx)
             token_to_flip = flipped_seq[flip_idx]
             char_to_flip = token_index[token_to_flip]
             char_to_flip_to = smart_replace(char_to_flip)
@@ -64,7 +65,7 @@ def example():
             curr_class = get_callsifier(tox_model, flipped_seq)
 
             print(data.seq_2_sent(flipped_seq, char_idx))
-            print('char index that was flipped' , flip_idx)
+            print('char index that was flipped', flip_idx)
             print('toxic class after: ', curr_class)
             num_of_flips_done += 1
 

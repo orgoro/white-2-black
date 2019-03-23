@@ -10,15 +10,13 @@ from keras import layers
 from keras.engine import InputSpec, Layer
 from keras import initializers
 from keras.callbacks import ModelCheckpoint
-from matplotlib import pyplot as plt
 import os
 from os import path
 
 import data
-from models.toxicity_clasifier import ToxicityClassifier
-from models import calc_recall, calc_precision, calc_f1, RocCallback
 from resources_out import RES_OUT_DIR
 from resources import LATEST_KERAS_WEIGHTS
+from toxicity_classifier.metrics import calc_f1, calc_precision, calc_recall, RocCallback
 
 
 class AttentionWeightedAverage(Layer):
@@ -97,7 +95,7 @@ class CustomLoss(object):
         return loss_function
 
 
-class ToxClassifierKerasConfig(object):
+class ToxClassifierConfig(object):
     # pylint: disable = too-many-arguments
     def __init__(self,
                  restore=True,
@@ -119,11 +117,14 @@ class ToxClassifierKerasConfig(object):
         self.train_on_toxic_only = train_on_toxic_only
         self.debug = debug
 
-class ToxicityClassifierKeras(ToxicityClassifier):
+
+class ToxicityClassifier(object):
     # pylint: disable = too-many-arguments
-    def __init__(self, session, max_seq=500, embedding_matrix=data.Dataset.init_embedding_from_dump()[0], config=None):
-        # type: (tf.Session, np.int, np.ndarray, ToxClassifierKerasConfig) -> None
-        self._config = config if config else ToxClassifierKerasConfig()
+    def __init__(self, session, max_seq=500, embedding_matrix=None, config=None):
+        # type: (tf.Session, np.int, np.ndarray, ToxClassifierConfig) -> None
+
+        if embedding_matrix is None:
+            embedding_matrix = data.Dataset.init_embedding_from_dump()[0]
         self._embedding = embedding_matrix
         self._num_tokens = embedding_matrix.shape[0]
         self._embed_dim = embedding_matrix.shape[1]
@@ -132,11 +133,14 @@ class ToxicityClassifierKeras(ToxicityClassifier):
         self._atten_w = None
         self._metrics = ['accuracy', 'ce', calc_precision, calc_recall, calc_f1]
         self.grad_fn = None
+        self._session = session
+        self._max_seq = max_seq
+        self._config = config if config else ToxClassifierConfig()
+        self._model = self._build_graph()  # type: keras.Model
 
-        super(ToxicityClassifierKeras, self).__init__(session=session, max_seq=max_seq)
+    # LAYERS ------------------------------------------------------------------------
 
     def embedding_layer(self, tensor):
-        # TODO consider change to trainable=False
         emb = layers.Embedding(input_dim=self._num_tokens, output_dim=self._embed_dim, input_length=self._max_seq,
                                trainable=False, mask_zero=False, weights=[self._embedding])
         return emb(tensor)
@@ -195,6 +199,8 @@ class ToxicityClassifierKeras(ToxicityClassifier):
     def output_layer(self, tensor, out_size=6):
         output = layers.Dense(out_size, activation='sigmoid')
         return output(tensor)
+
+    # GRAPH ------------------------------------------------------------------------
 
     def _build_graph(self):
         K.set_session(self._session)
@@ -257,6 +263,8 @@ class ToxicityClassifierKeras(ToxicityClassifier):
             callback_list.append(checkpoint)
         return callback_list
 
+    # TRAIN ------------------------------------------------------------------------
+
     def train(self, dataset):
         # type: (data.Dataset) -> keras.callbacks.History
         callback_list = self._define_callbacks()
@@ -271,24 +279,15 @@ class ToxicityClassifierKeras(ToxicityClassifier):
                                       callbacks=callback_list)
         return history
 
+    # INFER ------------------------------------------------------------------------
+
     def classify(self, seq):
         # type: (np.ndarray) -> np.ndarray
         prediction = self._model.predict(seq)
         return prediction
 
-    def get_f1_score(self, seqs, lbls):
-        # type: (np.ndarray, np.ndarray) -> np.ndarray
-        raise NotImplementedError('implemented by child')
-
     def get_grad_fn(self):
-        # grad_1 = K.gradients(loss=self._model.output[:, 1], variables=self._embedding)[0]
-        # grad_2 = K.gradients(loss=self._model.output[:, 2], variables=self._embedding)[0]
-        # grad_3 = K.gradients(loss=self._model.output[:, 3], variables=self._embedding)[0]
-        # grad_4 = K.gradients(loss=self._model.output[:, 4], variables=self._embedding)[0]
-        # grad_5 = K.gradients(loss=self._model.output[:, 5], variables=self._embedding)[0]
-
-        # grads = [grad_0, grad_1, grad_2, grad_3, grad_4, grad_5]
-
+        # only interested in the first label
         grad_0 = K.gradients(loss=self._model.output[:, 0], variables=self._embedding)[0]
         grads = [grad_0]
         fn = K.function(inputs=[self._model.input], outputs=grads)
@@ -305,100 +304,3 @@ class ToxicityClassifierKeras(ToxicityClassifier):
     def get_attention_fn(self):
         fn = K.function(inputs=[self._model.input], outputs=[self._atten_w])
         return fn
-
-
-def _visualize(history):
-    # type: (keras.callbacks.History) -> None
-    # Get training and test loss histories
-    training_loss = history.history['loss']
-    val_loss = history.history['val_loss']
-
-    # Create count of the number of epochs
-    epoch_count = range(1, len(training_loss) + 1)
-
-    # Visualize loss history
-    plt.plot(epoch_count, training_loss, 'r--')
-    plt.plot(epoch_count, val_loss, 'b-')
-    plt.legend(['Training Loss', 'Test Loss'])
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.show()
-
-
-def _visualise_attention(sent, attention):
-    input_length = len(sent)
-    fig = plt.figure(figsize=(input_length / 5, 5))
-    ax = fig.add_subplot(1, 1, 1)
-
-    width = 20
-    atten_map = np.tile(np.expand_dims(attention[-input_length:], 0), reps=[width, 1])
-    atten_map = np.repeat(atten_map, width, axis=1)
-    plt.imshow(atten_map, cmap='plasma', interpolation='nearest'), plt.title('attention')
-    x = list(np.arange(width / 2, width * (input_length + 0.5), width))
-    plt.colorbar(orientation='horizontal')
-    ax.set_xticks(x)
-    ax.set_yticks([])
-    ax.set_xticklabels(list(sent), rotation=0, fontdict={'fontsize': 8})
-    plt.show()
-
-
-def restore_model():
-    config = ToxClassifierKerasConfig(restore=True)
-    sess = tf.Session()
-    embedding_matrix, _ , _ = data.Dataset.init_embedding_from_dump()
-    max_seq = 500
-    tox_model = ToxicityClassifierKeras(session=sess, embedding_matrix=embedding_matrix, max_seq=max_seq, config=config)
-    return tox_model
-
-
-def example():
-    # init
-    restore = True
-    embedding_matrix, char_idx, _ = data.Dataset.init_embedding_from_dump()
-
-    max_seq = 500
-
-    if restore:
-        tox_model = restore_model()
-    else:
-        sess = tf.Session()
-        config = ToxClassifierKerasConfig(restore=False)
-        tox_model = ToxicityClassifierKeras(session=sess,
-                                            max_seq=max_seq,
-                                            embedding_matrix=embedding_matrix,
-                                            config=config)
-
-    dataset = data.Dataset.init_from_dump()
-    seq = np.expand_dims(dataset.train_seq[0, :], 0)
-    sent = data.seq_2_sent(seq[0], char_idx)
-
-    # evaluate before train
-    grad_tox = tox_model.get_gradient(seq)
-    grad_norm = np.linalg.norm(grad_tox, axis=2)
-    print('max grad location {}/{}'.format(np.argmax(grad_norm, axis=1), max_seq))
-
-    classes = tox_model.classify(seq)
-    atten_w = tox_model.get_attention(seq)
-    _visualise_attention(sent, atten_w[0])
-    print(classes)
-
-    # train
-    history = tox_model.train(dataset)
-
-    # evaluate after train
-    grad_tox = tox_model.get_gradient(seq)
-    grad_norm = np.linalg.norm(grad_tox, axis=2)
-    print('max grad location {}/{}'.format(np.argmax(grad_norm, axis=1), max_seq))
-
-    classes = tox_model.classify(seq)
-    atten_w = tox_model.get_attention(seq)
-    _visualise_attention(sent, atten_w[0])
-    print(classes)
-    true_classes = dataset.train_lbl[0, :]
-    print(true_classes)
-
-    _visualize(history=history)
-
-
-if __name__ == '__main__':
-    example()

@@ -7,7 +7,7 @@ import tensorflow as tf
 
 import data
 
-from models.toxicity_clasifier_keras import ToxicityClassifierKeras, ToxClassifierKerasConfig
+from toxicity_classifier.classifier import ToxicityClassifier, ToxClassifierConfig
 from resources_out import RES_OUT_DIR
 from resources import LATEST_KERAS_WEIGHTS
 import argparse
@@ -16,12 +16,12 @@ import argparse
 def train(config):
     sess = tf.Session()
     embedding_matrix = data.Dataset.init_embedding_from_dump()
-    max_seq = 500
+    max_seq = 400
     config.train_labels_1_ratio = embedding_matrix[2]
-    tox_model = ToxicityClassifierKeras(session=sess,
-                                        embedding_matrix=embedding_matrix[0],
-                                        max_seq=max_seq,
-                                        config=config)
+    tox_model = ToxicityClassifier(session=sess,
+                                   embedding_matrix=embedding_matrix[0],
+                                   max_seq=max_seq,
+                                   config=config)
     dataset = data.Dataset.init_from_dump()
     tox_model.train(dataset)
     seq = np.expand_dims(dataset.train_seq[0, :], 0)
@@ -52,13 +52,13 @@ def main():
                         help='Whether to train on toxic class only')
     args = parser.parse_args()
 
-    config = ToxClassifierKerasConfig(restore=args.restore,
-                                      restore_path=args.restore_path,
-                                      checkpoint=args.checkpoint,
-                                      checkpoint_path=args.checkpoint_path,
-                                      # use_gpu=args.use_gpu,
-                                      run_name=args.run_name,
-                                      train_on_toxic_only=args.toxic_only)
+    config = ToxClassifierConfig(restore=args.restore,
+                                 restore_path=args.restore_path,
+                                 checkpoint=args.checkpoint,
+                                 checkpoint_path=args.checkpoint_path,
+                                 # use_gpu=args.use_gpu,
+                                 run_name=args.run_name,
+                                 train_on_toxic_only=args.toxic_only)
 
     train(config=config)
 

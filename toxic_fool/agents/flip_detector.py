@@ -8,7 +8,6 @@ from time import gmtime, strftime
 import numpy as np
 import tensorflow as tf
 import tqdm
-import sys
 
 import data
 from toxicity_classifier import ToxicityClassifier

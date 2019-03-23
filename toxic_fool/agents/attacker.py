@@ -6,7 +6,7 @@ from os import path
 import argparse
 from attacks.hot_flip import HotFlip  ##needed to load hot flip data
 from agents.flip_detector import FlipDetector, FlipDetectorConfig
-from agents.smart_replace import smart_replace, get_possible_replace
+from agents.smart_replace import smart_replace
 from toxicity_classifier import ToxicityClassifier, ToxClassifierConfig
 from agents.agent import AgentConfig
 import random
@@ -342,33 +342,22 @@ def example():
         attacker.config.flip_middle_letters_only = False
         attacker.config.flip_once_in_a_word = False
 
-        random_cnt_moderate, random_cant_untoxic, random_time_for_attack = attacker.attack_until_break(model='random',
-                                                                                                       seq=seq,
-                                                                                                       sequence_idx=
-                                                                                                       sentences_to_run[
-                                                                                                           j])
+        random_cnt_moderate, _, random_time_for_attack = \
+            attacker.attack_until_break(model='random', seq=seq, sequence_idx=sentences_to_run[j])
         random_cnt_list_moderate.append(random_cnt_moderate)
         random_time_for_attack_list.append(random_time_for_attack)
-        atten_cnt_moderate, atten_cant_untoxic, atten_time_for_attack = attacker.attack_until_break(model='atten',
-                                                                                                    seq=seq,
-                                                                                                    sequence_idx=
-                                                                                                    sentences_to_run[j])
+        atten_cnt_moderate, _, atten_time_for_attack = \
+            attacker.attack_until_break(model='atten', seq=seq, sequence_idx=sentences_to_run[j])
         atten_cnt_list_moderate.append(atten_cnt_moderate)
         atten_time_for_attack_list.append(atten_time_for_attack)
-        hotflip_beam10_cnt_moderate, hotflip_beam10_time_for_attack = attacker.attack_hot_flip_until_break(seq=seq,
-                                                                                                           beam_size=10,
-                                                                                                           sequence_idx=
-                                                                                                           sentences_to_run[
-                                                                                                               j])
+        hotflip_beam10_cnt_moderate, hotflip_beam10_time_for_attack = \
+            attacker.attack_hot_flip_until_break(seq=seq, beam_size=10, sequence_idx=sentences_to_run[j])
 
         hotflip_beam10_cnt_list_moderate.append(hotflip_beam10_cnt_moderate)
         hotflip_beam10_time_for_attack_list.append(hotflip_beam10_time_for_attack)
 
-        hotflip_beam5_cnt_moderate, hotflip_beam5_time_for_attack = attacker.attack_hot_flip_until_break(seq=seq,
-                                                                                                         beam_size=5,
-                                                                                                         sequence_idx=
-                                                                                                         sentences_to_run[
-                                                                                                             j])
+        hotflip_beam5_cnt_moderate, hotflip_beam5_time_for_attack = \
+            attacker.attack_hot_flip_until_break(seq=seq, beam_size=5, sequence_idx=sentences_to_run[j])
         hotflip_beam5_cnt_list_moderate.append(hotflip_beam5_cnt_moderate)
         hotflip_beam5_time_for_attack_list.append(hotflip_beam5_time_for_attack)
 

@@ -9,6 +9,7 @@ import tensorflow as tf
 from models.toxicity_clasifier_keras import ToxicityClassifierKeras
 from agents.smart_replace import smart_replace , get_possible_replace
 from attacks.hot_flip import HotFlip
+import time
 
 def check_num_of_flips(best_flip_status):
     pointer = best_flip_status
@@ -25,10 +26,13 @@ def main():
     sess = tf.Session()
     tox_model = ToxicityClassifierKeras(session=sess)
 
-    hot_flip = HotFlip(model=tox_model)
-    hot_dup = HotFlip(model=tox_model,attack_mode='dup')
+    hot_flip = HotFlip(model=tox_model,break_on_half = True,beam_search_size = 10)
+    hot_flip_tox = HotFlip(model=tox_model,use_tox_as_score = True,break_on_half = True , calc_tox_for_beam = True
+                           , beam_search_size = 3)
 
-    list_of_attack = [ hot_flip , hot_dup ]
+    #hot_dup = HotFlip(model=tox_model,attack_mode='dup')
+
+    list_of_attack = [ hot_flip , hot_flip_tox ]
 
     # get data
     dataset = data.Dataset.init_from_dump()
@@ -41,8 +45,11 @@ def main():
     list_final_tox_flip = []
     list_final_tox_dup = []
 
+    list_flip_attack_time = []
+    list_dup_attack_time = []
+
     #check_length(dataset)
-    num_of_sentence_to_attack = 50
+    num_of_sentence_to_attack = 100
     for i in range (num_of_sentence_to_attack):
 
         index_to_attack = index_of_toxic_sent[i]
@@ -52,9 +59,11 @@ def main():
 
 
         for attack in list_of_attack:
-            print("attack mode: " , attack.attack_mode)
+            print("attack use_tox_as_score mode: " , attack.use_tox_as_score)
             #do hot flip attack
+            t = time.time()
             best_flip_status , _ = attack.attack(seq = seq)
+            dur = time.time() - t
 
             # print sentance after the flips
             # print("flipped sentence: ")
@@ -72,23 +81,27 @@ def main():
 
             num_flips = check_num_of_flips(best_flip_status)
 
-            if attack.attack_mode == 'flip':
+            if attack.use_tox_as_score == False:
                 list_flip_attack.append( num_flips  )
                 list_final_tox_flip.append( classes  )
+                list_flip_attack_time.append(dur)
             else:
                 list_dup_attack.append( num_flips )
                 list_final_tox_dup.append( classes  )
+                list_dup_attack_time.append(dur)
 
 
         print("list_flip_attack")
         print(list_flip_attack)
         print("mean num of flips: " , sum(list_flip_attack) / float(len(list_flip_attack)))
         print("mean final class: ", sum(list_final_tox_flip) / float(len(list_final_tox_flip)))
+        print("mean run time: ", sum(list_flip_attack_time) / float(len(list_flip_attack_time)))
 
         print("list_dup_attack")
         print(list_dup_attack)
         print("mean num of dups: ", sum(list_dup_attack) / float(len(list_dup_attack)))
         print("mean final class: ", sum(list_final_tox_dup) / float(len(list_final_tox_dup)))
+        print("mean run time: ", sum(list_dup_attack_time) / float(len(list_dup_attack_time)))
 
 
 if __name__ == '__main__':

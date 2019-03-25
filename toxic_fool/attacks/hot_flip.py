@@ -26,7 +26,8 @@ class FlipStatus(object):
     #class that hold the curr flip status of the sentence
     #pylint: disable=too-many-arguments
     def __init__(self, fliped_sent, curr_score,index_of_char_to_flip = None,char_to_flip_to = None,orig_sent = None,
-                 grads_in_fliped_char = None, max_flip_grad_per_char=None, prev_flip_status = None,mask = None):
+                 grads_in_fliped_char = None, max_flip_grad_per_char=None, prev_flip_status = None,mask = None,
+                 tox = None):
         self.fliped_sent = fliped_sent
         self.curr_score = curr_score
         self.index_of_char_to_flip = index_of_char_to_flip
@@ -36,12 +37,14 @@ class FlipStatus(object):
         self.max_flip_grad_per_char = max_flip_grad_per_char # i think it shouldn't be in use.
         self.prev_flip_status = prev_flip_status
         self.mask = mask
+        self.tox = tox
 
 class HotFlip(object):
     # pylint: disable=too-many-arguments
     def __init__(self, model , num_of_char_to_flip = 400, beam_search_size = 5, attack_threshold = 0.10,debug=True,
                  only_smart_replace_allowed = False, replace_only_letters_to_letters = True, attack_mode = 'flip',
-                 break_on_half = False, stop_after_num_of_flips = False , num_max_flips = 20):
+                 break_on_half = False, stop_after_num_of_flips = False , num_max_flips = 20,use_tox_as_score = False,
+                 calc_tox_for_beam = False):
         self.tox_model = model
         self.num_of_char_to_flip = num_of_char_to_flip
         self.beam_search_size = beam_search_size
@@ -53,6 +56,8 @@ class HotFlip(object):
         self.break_on_half = break_on_half
         self.stop_after_num_of_flips = stop_after_num_of_flips
         self.num_max_flips = num_max_flips
+        self.use_tox_as_score = use_tox_as_score
+        self.calc_tox_for_beam = calc_tox_for_beam
 
     #get min score in the beam search
     def get_min_score_in_beam(self, beam_best_flip):
@@ -65,21 +70,40 @@ class HotFlip(object):
 
         return min_score , i
 
+    def zero_all_score(self,beam_best_flip):
+        for index, flip_status in enumerate(beam_best_flip):
+                flip_status.curr_score = 0
+
+
+    #get min score in the beam search
+    def get_max_tox_in_beam(self, beam_best_flip):
+        max_score = -np.inf
+        i = -1
+        for index , flip_status in enumerate(beam_best_flip):
+            if flip_status.tox > max_score:
+                max_score = flip_status.tox
+                i = index
+
+        return max_score , i
+
     #get the best setence flip
     def get_best_hot_flip(self,beam_best_flip):
         max_score = -np.inf
 
         best_flip_status = None
         for flip_status in beam_best_flip:
-            if flip_status.curr_score > max_score:
-                max_score = flip_status.curr_score
+
+            curr_score = flip_status.curr_score if self.use_tox_as_score == False else -flip_status.tox
+
+            if curr_score > max_score:
+                max_score = curr_score
                 best_flip_status = flip_status
 
         return best_flip_status
 
     def create_initial_beam_search_database(self,curr_squeeze_seq,mask):
         beam_best_flip = []
-        original_sentence_flip_status = FlipStatus(fliped_sent=curr_squeeze_seq, curr_score=0,mask=mask)
+        original_sentence_flip_status = FlipStatus(fliped_sent=curr_squeeze_seq, curr_score=0,mask=mask,tox=1)
         beam_best_flip.append(original_sentence_flip_status)
 
         return beam_best_flip
@@ -173,6 +197,10 @@ class HotFlip(object):
 
             if self.stop_after_num_of_flips and num_of_flips > self.num_max_flips:
                 break
+
+
+            if self.calc_tox_for_beam:
+                self.zero_all_score(beam_best_flip)
 
             #copy the curr database in order not to iterate over the changed database
             copy_beam_best_flip = beam_best_flip.copy()
@@ -355,6 +383,17 @@ class HotFlip(object):
                     updated_mask = curr_flip.mask.copy()
                     updated_mask[index_of_char_to_flip] = 0
 
+                    if self.calc_tox_for_beam:
+                        curr_class = self.tox_model.classify(np.expand_dims(fliped_squeeze_seq, 0))[0][0]
+                        #override index from berfore
+                        max_score, index = self.get_max_tox_in_beam(beam_best_flip)
+                        should_enter_beam = max_score  > curr_class
+                    else:
+                        curr_class = None
+                        should_enter_beam = True
+
+
+
                     new_flip_status = FlipStatus(fliped_sent=fliped_squeeze_seq,
                                                  curr_score=curr_score,
                                                  index_of_char_to_flip=index_of_char_to_flip,
@@ -363,12 +402,16 @@ class HotFlip(object):
                                                  grads_in_fliped_char=flip_grad_matrix[i],
                                                  max_flip_grad_per_char=max_flip_grad_per_char,
                                                  prev_flip_status=curr_flip,
-                                                 mask = updated_mask)
+                                                 mask = updated_mask,
+                                                 tox = curr_class)
 
                     if len(beam_best_flip) < self.beam_search_size:
                         beam_best_flip.append(new_flip_status)
-                    else:
+                    elif should_enter_beam:
                         beam_best_flip[index] = new_flip_status
+
+                    # if should_enter_beam == False and len(beam_best_flip) == self.beam_search_size:
+                    #     print("didnt' enter")
 
         return  beam_best_flip
 
@@ -396,7 +439,8 @@ def example():
     hot_flip = HotFlip(model=tox_model)
     hot_dup = HotFlip(model=tox_model,attack_mode='dup')
 
-    list_of_attack = [ hot_flip , hot_dup ]
+    #list_of_attack = [ hot_flip , hot_dup ]
+    list_of_attack = [hot_flip]
 
     # get data
     dataset = data.Dataset.init_from_dump()

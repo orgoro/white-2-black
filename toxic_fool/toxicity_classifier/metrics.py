@@ -7,6 +7,7 @@ from keras import backend as K
 from sklearn.metrics import roc_auc_score
 import numpy as np
 
+
 def calc_recall(y_true, y_pred):
     true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
     possible_positives = K.sum(y_true)
@@ -29,7 +30,7 @@ def calc_f1(y_true, y_pred):
 
 class RocCallback(Callback):
     def __init__(self, dataset):
-        # type: (data.Dataset) -> None
+        # type: (Dataset) -> None
         self.x = dataset.train_seq
         self.y = dataset.train_lbl
         self.x_val = dataset.val_seq

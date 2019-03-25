@@ -6,7 +6,7 @@ import data
 
 import numpy as np
 import tensorflow as tf
-from models.toxicity_clasifier_keras import ToxicityClassifierKeras
+from toxicity_classifier import ToxicityClassifier
 from agents.smart_replace import smart_replace , get_possible_replace
 
 SMALL_LETTERS = 'qwertyuiopasdfghjklzxcvbnm'
@@ -410,9 +410,6 @@ class HotFlip(object):
                     elif should_enter_beam:
                         beam_best_flip[index] = new_flip_status
 
-                    # if should_enter_beam == False and len(beam_best_flip) == self.beam_search_size:
-                    #     print("didnt' enter")
-
         return  beam_best_flip
 
 
@@ -434,7 +431,7 @@ def example():
 
     # get restore model
     sess = tf.Session()
-    tox_model = ToxicityClassifierKeras(session=sess)
+    tox_model = ToxicityClassifier(session=sess)
 
     hot_flip = HotFlip(model=tox_model)
     hot_dup = HotFlip(model=tox_model,attack_mode='dup')

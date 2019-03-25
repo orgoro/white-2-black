@@ -42,7 +42,7 @@ def _get_char_neighbors(is_upper, row_idx, char_idx):
     return pos_chars
 
 
-def _find_char(char,):
+def _find_char(char, ):
     in_row_0 = ROW_0.find(char)
     in_row_1 = ROW_1.find(char)
     in_row_2 = ROW_2.find(char)
@@ -81,7 +81,8 @@ def _find_char(char,):
 
     return is_upper, row_idx, char_idx
 
-def get_possible_replace(char,preserve_type=True):
+
+def get_possible_replace(char, preserve_type=True):
     is_upper, row_idx, char_idx = _find_char(char)
     neighbours = _get_char_neighbors(is_upper, row_idx, char_idx)
     if preserve_type:
@@ -91,9 +92,10 @@ def get_possible_replace(char,preserve_type=True):
             neighbours = re.sub(r'[a-zA-Z]', '', neighbours)
     return neighbours
 
+
 def smart_replace(char, preserve_type=True):
-    #type: (str, bool) -> str
-    neighbours = get_possible_replace(char,preserve_type)
+    # type: (str, bool) -> str
+    neighbours = get_possible_replace(char, preserve_type)
     np.random.seed(42)
     selected_char = np.random.randint(0, len(neighbours))
     return neighbours[selected_char]

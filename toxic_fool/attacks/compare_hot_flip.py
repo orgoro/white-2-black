@@ -6,8 +6,8 @@ import data
 
 import numpy as np
 import tensorflow as tf
-from models.toxicity_clasifier_keras import ToxicityClassifierKeras
-from agents.smart_replace import smart_replace , get_possible_replace
+from toxicity_classifier import ToxicityClassifier
+from agents.smart_replace import smart_replace, get_possible_replace
 from attacks.hot_flip import HotFlip
 import time
 
@@ -24,7 +24,7 @@ def main():
 
     # get restore model
     sess = tf.Session()
-    tox_model = ToxicityClassifierKeras(session=sess)
+    tox_model = ToxicityClassifier(session=sess)
 
     hot_flip = HotFlip(model=tox_model,break_on_half = True,beam_search_size = 10)
     hot_flip_tox = HotFlip(model=tox_model,use_tox_as_score = True,break_on_half = True , calc_tox_for_beam = True

@@ -7,7 +7,7 @@ import data
 import numpy as np
 import tensorflow as tf
 from toxicity_classifier import ToxicityClassifier
-from agents.smart_replace import smart_replace , get_possible_replace
+#from agents.smart_replace import get_possible_replace
 
 SMALL_LETTERS = 'qwertyuiopasdfghjklzxcvbnm'
 CAPITAL_LETTERS = 'QWERTYUIOPASDFGHJKLZXCVBNM'
@@ -42,7 +42,7 @@ class FlipStatus(object):
 class HotFlip(object):
     # pylint: disable=too-many-arguments
     def __init__(self, model , num_of_char_to_flip = 400, beam_search_size = 5, attack_threshold = 0.10,debug=True,
-                 only_smart_replace_allowed = False, replace_only_letters_to_letters = True, attack_mode = 'flip',
+                 replace_only_letters_to_letters = True, attack_mode = 'flip',
                  break_on_half = False, stop_after_num_of_flips = False , num_max_flips = 20,use_tox_as_score = False,
                  calc_tox_for_beam = False):
         self.tox_model = model
@@ -50,7 +50,7 @@ class HotFlip(object):
         self.beam_search_size = beam_search_size
         self.attack_threshold = attack_threshold
         self.debug = debug
-        self.only_smart_replace_allowed = only_smart_replace_allowed
+
         self.replace_only_letters_to_letters = replace_only_letters_to_letters
         self.attack_mode = attack_mode
         self.break_on_half = break_on_half
@@ -71,8 +71,8 @@ class HotFlip(object):
         return min_score , i
 
     def zero_all_score(self,beam_best_flip):
-        for index, flip_status in enumerate(beam_best_flip):
-                flip_status.curr_score = 0
+        for _, flip_status in enumerate(beam_best_flip):
+            flip_status.curr_score = 0
 
 
     #get min score in the beam search
@@ -224,11 +224,7 @@ class HotFlip(object):
                     beam_best_flip = self.find_best_flip( tox_model, flip_grad_matrix, beam_best_flip, curr_flip,
                                                          curr_squeeze_seq,  max_flip_grad_per_char)
                 else:
-                    #dulication attack
-                    dup_grad_matrix  = self.duplication_grad_calc(tox_model , curr_squeeze_seq , char_grad_tox)
-
-                    beam_best_flip = self.find_best_duplication_flip(tox_model , dup_grad_matrix , curr_flip ,
-                                                                     beam_best_flip , curr_squeeze_seq)
+                    raise NotImplementedError()
 
 
 
@@ -236,88 +232,6 @@ class HotFlip(object):
         best_hot_flip_status  = self.get_best_hot_flip(beam_best_flip)
 
         return best_hot_flip_status , char_to_token_dic, 
-
-    def find_best_duplication_flip(self, tox_model , dup_grad_matrix , curr_flip , beam_best_flip , curr_squeeze_seq):
-
-        #going over all the sentence for flip
-        for i in range(tox_model._max_seq):
-
-            # calc score for curr flip
-            curr_flip_grad_diff = dup_grad_matrix[i]
-
-            # calc score for all flip till now
-            curr_score = curr_flip.curr_score + curr_flip_grad_diff
-
-            # check if need to update the beam search database with the curr flip
-            curr_min_score_in_beam, index = self.get_min_score_in_beam(beam_best_flip)
-
-            if len(beam_best_flip) < self.beam_search_size or curr_score > curr_min_score_in_beam:
-
-                # update beam search database with the new flip
-                dup_squeeze_seq = curr_squeeze_seq.copy()
-                #first_char_index = np.argmax(dup_squeeze_seq > 0)
-
-                #TODO solve dup of the first char
-                if i == 0:
-                    continue
-
-                if not i > 0:
-                    raise AssertionError()
-
-                #duplicate the i latter
-                dup_squeeze_seq[0:i] = dup_squeeze_seq[1:i+1]
-
-                new_flip_status = FlipStatus(fliped_sent=dup_squeeze_seq,
-                                             curr_score=curr_score,
-                                             index_of_char_to_flip=None, #TODO
-                                             char_to_flip_to=None, #TODO
-                                             orig_sent=curr_squeeze_seq.copy(),
-                                             grads_in_fliped_char=None, #TODO
-                                             max_flip_grad_per_char=None, #TODO remove
-                                             prev_flip_status=curr_flip,
-                                             mask =  curr_flip.mask) #TODO
-
-                if len(beam_best_flip) < self.beam_search_size:
-                    beam_best_flip.append(new_flip_status)
-                else:
-                    beam_best_flip[index] = new_flip_status
-
-        return beam_best_flip
-
-    def duplication_grad_calc(self,tox_model , curr_squeeze_seq , char_grad_tox ):
-
-        #duplicate grad calc
-        dup_grad_matrix = np.full((tox_model._max_seq), -np.inf)
-        for i in range(tox_model._max_seq):
-
-            curr_index = i
-            curr_token = curr_squeeze_seq[curr_index]
-
-            # 0 is special token for nothing , 95 is ' '. # TODO do generic.
-            if curr_token == 0 or curr_token == 95: continue
-
-            dup_grad_matrix[i] = 0
-            num_of_replace = 0
-
-            #while we didn't reach the end of the word
-            while curr_squeeze_seq[curr_index] != 95:
-
-                curr_token = curr_squeeze_seq[curr_index]
-
-                next_char_token = curr_squeeze_seq[curr_index + 1]
-
-                index_of_flip = curr_index + 1
-                dup_grad_matrix[i] += char_grad_tox[index_of_flip][next_char_token] \
-                                      - char_grad_tox[index_of_flip][curr_token]
-
-                curr_index += 1
-                num_of_replace += 1
-
-            #normalization to dup_grad_matrix[i]
-            dup_grad_matrix[i] = dup_grad_matrix[i] / np.sqrt( 2 * num_of_replace)
-
-        return dup_grad_matrix
-
 
 
     def flip_grad_calc(self,index_of_char_allowed_to_flip,curr_squeeze_seq , char_grad_tox , tox_model,
@@ -338,20 +252,13 @@ class HotFlip(object):
 
             # if only smart replace allowed, grads in other position will be np.inf
             grad_curr_token = char_grad_tox[i][curr_token]
-            if self.only_smart_replace_allowed:
-                replace_to_mask = np.zeros([tox_model._num_tokens])
-                curr_char = token_index[curr_token]
-                pos_flip = get_possible_replace(curr_char)
-                token_pos_flip = [char_to_token_dic[word] for word in pos_flip]
-                replace_to_mask[token_pos_flip] = 1
-                char_grad_tox[i][np.where(replace_to_mask == 0)] = np.inf
 
             if self.replace_only_letters_to_letters:
                 curr_char = token_index[curr_token]
                 replace_to_mask = self.get_replace_to_mask(curr_char, char_to_token_dic, tox_model._num_tokens)
                 char_grad_tox[i][np.where(replace_to_mask == 0)] = np.inf
 
-            flip_grad_matrix[i] = grad_curr_token - char_grad_tox[i]  # TODO check if it shouldn't be the oposite
+            flip_grad_matrix[i] = grad_curr_token - char_grad_tox[i]
             max_flip_grad_per_char[i] = np.max(flip_grad_matrix[i])
 
         return max_flip_grad_per_char , flip_grad_matrix
@@ -434,9 +341,7 @@ def example():
     tox_model = ToxicityClassifier(session=sess)
 
     hot_flip = HotFlip(model=tox_model)
-    hot_dup = HotFlip(model=tox_model,attack_mode='dup')
 
-    #list_of_attack = [ hot_flip , hot_dup ]
     list_of_attack = [hot_flip]
 
     # get data

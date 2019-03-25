@@ -69,7 +69,7 @@ class DataProcessor(object):
         # self._test_l = pd.read_csv(test_l)
         self._max_seq_len = 500
         self._max_data_len = 400
-        self._tokenizer = text.Tokenizer(char_level=True, lower=False)  # TODO: max number of words
+        self._tokenizer = text.Tokenizer(char_level=True, lower=False)
 
         self.processed = False  # True after data processing
         self._clean_words = clean_text
@@ -130,7 +130,7 @@ class DataProcessor(object):
         return white_space_embedding
 
     def create_embedding_matrix(self, embeddings_index):
-        char_index = self._tokenizer.word_index  # it's actually char and not word. TODO consider fix
+        char_index = self._tokenizer.word_index  # it's actually char and not word.
         embedding_matrix = np.zeros((len(char_index) + 1, res.EMBEDDING_DIM))
         for char, i in char_index.items():
             embedding_vector = embeddings_index.get(char)
@@ -141,7 +141,7 @@ class DataProcessor(object):
         return embedding_matrix
 
     @staticmethod
-    def check_all_data_char_in_embedding(text_train, text_test, embeddings_index):  # TODO move to test
+    def check_all_data_char_in_embedding(text_train, text_test, embeddings_index):
         data_tokanizer = text.Tokenizer(char_level=True, lower=True)
         data_tokanizer.fit_on_texts(texts=list(text_test) + list(text_train))
         char_index = data_tokanizer.word_index

@@ -12,9 +12,6 @@ from attacks.hot_flip import HotFlip
 import time
 import resources as out
 
-#HOT_FLIP_ATTACK_TRAIN_FILE =  path.join('data', 'hot_flip_attack_train.npy')
-#HOT_FLIP_ATTACK_VAL_FILE =  path.join('data', 'hot_flip_attack_val.npy')
-#HOT_FLIP_ATTACK_TEST_FILE =  path.join('data', 'hot_flip_attack_test.npy')
 
 class HotFlipAttackData(object):
     def __init__(self, hot_flip_status ,sentence_ind):
@@ -74,7 +71,9 @@ class HotFlipAttack(object):
         #np.load(path.join(out.RESOURCES_DIR, HOT_FLIP_ATTACK_TEST_FILE))
 
     def get_file_name(self,dataset_type,split_num,attack_mode , beam_size):
-        initial_file_name = 'split_' + str(split_num) + '_' +str(attack_mode) + '_beam' + str(beam_size) + '_' + '_gpu_split_' + str(args.gpu_split)
+        initial_file_name = 'split_' + str(split_num) + '_' +str(attack_mode) +\
+                            '_beam' + str(beam_size) + '_' + '_gpu_split_' + str(args.gpu_split)
+
         if dataset_type == 'train':
             file_name_to_save = path.join('data', initial_file_name + 'hot_flip_attack_train.npy')
         else:
@@ -144,7 +143,6 @@ def example():
     attack_list = []
     attack_list.append((dataset.train_seq, dataset.train_lbl, 'train'))
     attack_list.append((dataset.val_seq, dataset.val_lbl, 'val'))
-    #attack_list.append((dataset.test_seq, dataset.test_lbl, HOT_FLIP_ATTACK_TEST_FILE))
 
     num_of_split = 10
 
@@ -164,7 +162,7 @@ def example():
 
             #attack this dataset
             list_of_hot_flip_attack = hot_flip_attack.attack(seq_to_attack,label_to_attack)
-            #list_of_hot_flip_attack = []
+
             #save to file
             file_name_to_save = hot_flip_attack.get_file_name(dataset_type , j,
                                                               hot_flip_attack.attack_mode , hot_flip_attack.beam_size)

@@ -17,7 +17,7 @@ from data.hot_flip_data_processor import HotFlipDataProcessor
 from resources import LATEST_DETECTOR_WEIGHTS
 from resources_out import RES_OUT_DIR
 import os
-
+from attacks.hot_flip_attack import HotFlipAttackData
 
 class FlipDetectorConfig(AgentConfig):
     # pylint: disable=too-many-arguments

@@ -8,7 +8,7 @@ import numpy as np
 from attacks.hot_flip_attack import HotFlipAttack
 from attacks.hot_flip_attack import HotFlipAttackData ##needed to load hot flip data
 
-import matplotlib.pyplot as plt #TODO del
+import matplotlib.pyplot as plt
 
 def plot_bin(x , file_name):
     plt.bar(range(len(x)), x, align='center', alpha=0.5)
@@ -68,11 +68,7 @@ class HotFlipDataProcessor(object):
         #     self.extract_flip_data(list_of_hot_flip_attack_val)
 
         np.random.seed(42)
-        # p = np.random.permutation(len(train_token_input))
-        # train_token_input = train_token_input[p]
-        # train_predections_detector = train_predections_detector[p]
-        # if train_predections_char_selector != None: #TODO - Verify it's not None
-        #     train_predections_char_selector = train_predections_char_selector[p]
+
         val_size = 10000
         return train_token_input[:-val_size],\
                train_predections_detector[:-val_size], \
@@ -89,7 +85,7 @@ class HotFlipDataProcessor(object):
 
         detector_dataset = data.Dataset(train_seq = train_token_input, train_lbl = train_predections_detector,
                             val_seq = val_token_input, val_lbl = val_predections_detector,
-                                        test_seq = None, test_lbl = None) #TODO test
+                                        test_seq = None, test_lbl = None)
 
         return detector_dataset
 
@@ -100,7 +96,7 @@ class HotFlipDataProcessor(object):
 
         char_selector_dataset = data.Dataset(train_seq = train_token_input, train_lbl = train_predections_char_selector,
                             val_seq = val_token_input, val_lbl = val_predections_char_selector,
-                                             test_seq = None, test_lbl = None) #TODO test
+                                             test_seq = None, test_lbl = None)
 
         return char_selector_dataset
 
@@ -114,7 +110,7 @@ class HotFlipDataProcessor(object):
                                              train_replace_lbl=train_predections_char_selector,
                                              val_seq=val_token_input, val_lbl=val_predections_detector,
                                              val_replace_lbl=val_predections_char_selector,
-                                             test_seq=None, test_lbl=None, test_replace_lbl=None)  # TODO test
+                                             test_seq=None, test_lbl=None, test_replace_lbl=None)
 
         return char_selector_dataset
 

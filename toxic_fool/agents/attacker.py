@@ -96,7 +96,8 @@ class Attacker(object):
             self._hotflip = hotflip if hotflip else HotFlip(model=self._tox_model,
                                                             num_of_char_to_flip=1,
                                                             beam_search_size=1,
-                                                            only_smart_replace_allowed=config.smart_replace,
+                                                            #only_smart_replace_allowed=config.smart_replace,
+                                                            # TODO yotam, removed support by yoav
                                                             debug=False)
 
         self._random_flip = random_flip if random_flip else RandomFlip()

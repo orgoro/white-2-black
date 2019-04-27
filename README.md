@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/orgoro/toxic-fool.svg?branch=master)](https://travis-ci.com/orgoro/white-2-black)
+[![Build Status](https://travis-ci.com/orgoro/white-2-black.svg?branch=orphan)](https://travis-ci.com/orgoro/white-2-black)
 
 # white2black
 

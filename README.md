@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/orgoro/toxic-fool.svg?branch=master)](https://travis-ci.com/orgoro/toxic-fool)
+[![Build Status](https://travis-ci.com/orgoro/toxic-fool.svg?branch=master)](https://travis-ci.com/orgoro/white-2-black)
 
 # white2black
 
@@ -15,8 +15,8 @@ The code is divided into sub-packages:
 
 ## ALGORITHM
 As seen in the figure below we train a classifier to predict the class of toxic and non-toxic sentences.
-We attack this model using a white-box algorithm called hot-flip and distill the knowledge into a second model.
-The second model which we call dist-flip is abel to generate attacks in a black-box manner.
+We attack this model using a white-box algorithm called hot-flip and distill the knowledge into a second model - `DistFlip`.
+`DistFlip` is able to generate attacks in a black-box manner.
 These attacks generalize well to the [Google Perspective](https://www.perspectiveapi.com/) algorithm (tested Jan 2019).
 ![algorithm](/doc/algorithm.png)
 

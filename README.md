@@ -7,11 +7,11 @@ The official code to reproduce results in the NACCL2019 paper:
 *White-to-Black: Efficient Distillation of Black-Box Adversarial Attacks*
 
 The code is divided into sub-packages:
-##### 1. Agents - _adversarial learned attck generators_
-##### 2. Attacks - _optimization attacks like hot flip_
-##### 3. Toxic Classifier - _a classifier of sentences toxic/non toxic_
-##### 4. Data - _data handling_
-##### 5. Resources - _resources for other categories_
+##### 1. [./Agents](./toxic_fool/agents) - _adversarial learned attck generators_ 
+##### 2. [./Attacks](./toxic_fool/attacks) - _optimization attacks like hot flip_
+##### 3. [./Toxicity Classifier](./toxic_fool/toxicity_classifier) - _a classifier of sentences toxic/non toxic_
+##### 4. [./Data](./toxic_fool/data) - _data handling_
+##### 5. [./Resources](./toxic_fool/resources) - _resources for other categories_
 
 ## ALGORITHM
 As seen in the figure below we train a classifier to predict the class of toxic and non-toxic sentences.

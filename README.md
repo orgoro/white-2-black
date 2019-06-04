@@ -24,9 +24,9 @@ These attacks generalize well to the [Google Perspective](https://www.perspectiv
 We used the data from this [kaggle challenge](https://www.kaggle.com/c/jigsaw-toxic-comment-classification-challenge) 
 by Jigsaw
 
-For data flip using HotFlip+ you can download:
-https://drive.google.com/file/d/15zSclVYjFYtM1YXUxZbFUpmWS1MgHTx3/view?usp=sharing
-and unzip it in toxic_fool\resources\data
+For data flip using HotFlip+ you can download 
+the [data from Google Drive](https://drive.google.com/file/d/15zSclVYjFYtM1YXUxZbFUpmWS1MgHTx3/view?usp=sharing)
+and unzip it into: `./toxic_fool/resources/data`
 
 
 ## RESULTS

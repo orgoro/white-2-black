@@ -29,9 +29,8 @@ def create_token_dict(char_idx):
 
 
 class RandomFlip(object):
-    def attack(self, seq, mask, token_index, char_index):
+    def attack(self, seq, mask, token_index, char_index):  # pylint: disable=unused-argument
         assert len(mask) == len(seq)
-        char_index = None  # pylint: disable=unused-argument
         masked_seq = seq * mask
         spaces_indices = np.where(seq == SPACE_EMBEDDING)
         masked_seq[spaces_indices] = 0
